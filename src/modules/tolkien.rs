@@ -16,7 +16,7 @@ impl Module for Tolkien {
                 .and_then(|file| Some(BufReader::new(file)))
                 .and_then(|buffer| Some(buffer.lines().nth(0).unwrap().unwrap()))
                 .and_then(|line| usize::from_str(line.as_str()).ok()))
-            .unwrap_or(0);
+            .unwrap_or(1);
 
         match file {
             Err(e) => format!("Sorry, ik kan geen Tolkien voorlezen op het moment. {e:?}"),
@@ -26,7 +26,7 @@ impl Module for Tolkien {
                 match file.read_to_string(&mut contents) {
                     Err(e) => format!("Sorry, ik kan geen Tolkien voorlezen op het moment. {e:?}"),
                     Ok(_) => {
-                        let content = contents.split("\n\n").nth(line).unwrap_or(&"Deze regel snap ik niet.");
+                        let content = contents.split("\n\n").nth(line - 1).unwrap_or(&"Deze regel snap ik niet.");
 
                         if input.is_empty()
                         {
@@ -35,7 +35,7 @@ impl Module for Tolkien {
                                 .expect("Oops");
                         }
 
-                        content.to_string()
+                        format!("{line}. {content}")
                     }
                 }
             }
