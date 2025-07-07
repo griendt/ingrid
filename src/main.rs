@@ -1,4 +1,5 @@
 mod modules;
+mod entity;
 
 use crate::modules::Module;
 use teloxide::{prelude::*, utils::command::BotCommands};
