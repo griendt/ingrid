@@ -1,5 +1,8 @@
-use sea_orm_migration::{prelude::*, schema::{pk_auto, integer}};
 use futures::future::TryFutureExt;
+use sea_orm_migration::{
+    prelude::*,
+    schema::{integer, pk_auto},
+};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -16,12 +19,15 @@ impl MigrationTrait for Migration {
                     .col(integer(Chat::TelegramId))
                     .to_owned(),
             )
-            .and_then(|_| manager.create_index(
-                Index::create()
-                    .table(Chat::Table)
-                    .col(Chat::TelegramId)
-                    .to_owned()
-            )).await
+            .and_then(|_| {
+                manager.create_index(
+                    Index::create()
+                        .table(Chat::Table)
+                        .col(Chat::TelegramId)
+                        .to_owned(),
+                )
+            })
+            .await
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
@@ -32,7 +38,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum Chat {
+pub(crate) enum Chat {
     Table,
     Id,
     TelegramId,

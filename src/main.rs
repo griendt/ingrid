@@ -3,7 +3,7 @@ mod modules;
 
 use crate::entity::chat;
 use crate::modules::Module;
-use log::{info, log, warn};
+use log::{info, warn};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
     IntoActiveModel, QueryFilter, Set,
@@ -32,6 +32,19 @@ enum Command {
     Tolkien(String),
 }
 
+impl Command {
+    async fn handle(&self, db: &DatabaseConnection, _chat: &chat::ActiveModel) -> String {
+        match self {
+            Command::Help => modules::help::Help {}.handle("".to_string(), db).await,
+            Command::Tolkien(input) => {
+                modules::tolkien::Tolkien {}
+                    .handle(input.to_owned(), db)
+                    .await
+            }
+        }
+    }
+}
+
 async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<()> {
     warn!(
         "Received from chat ID {} user id {} message: '{}'",
@@ -51,13 +64,7 @@ async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<
     .expect("Could not connect to the database.");
 
     let chat = message.get_or_create_chat(&db).await;
-
-    let (module, input): (&dyn Module, String) = match command {
-        Command::Help => (&modules::help::Help {}, "".to_string()),
-        Command::Tolkien(input) => (&modules::tolkien::Tolkien {}, input),
-    };
-
-    let response = module.handle(input, &db);
+    let response = command.handle(&db, &chat).await;
 
     bot.send_message(message.chat.id, response).await?;
     Ok(())
