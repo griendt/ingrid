@@ -36,6 +36,19 @@ impl Module for Tolkien {
     async fn handle(&self, input: String, db: &DatabaseConnection) -> String {
         if input == "seed" {
             self.seed(db).await;
+            return "Ok".to_string();
+        }
+
+        let parsed_input = input.parse::<i32>();
+        if parsed_input.is_ok() {
+            let line_number = parsed_input.unwrap();
+            return tolkien_line::Entity::find()
+                .filter(tolkien_line::Column::LineNumber.eq(line_number))
+                .one(db)
+                .await
+                .expect("Could not query the database")
+                .and_then(|model| Some(format!("{}. {}", line_number, model.line_content)))
+                .unwrap_or("Deze regel kan ik niet lezen".to_string());
         }
 
         let mut current_line = match chat_tolkien_line_number::Entity::find()
