@@ -57,7 +57,7 @@ async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<
         Command::Tolkien(input) => (&modules::tolkien::Tolkien {}, input),
     };
 
-    let response = module.handle(input);
+    let response = module.handle(input, &db);
 
     bot.send_message(message.chat.id, response).await?;
     Ok(())
