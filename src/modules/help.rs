@@ -1,11 +1,12 @@
-use teloxide::utils::command::BotCommands;
 use crate::Command;
 use crate::modules::Module;
+use sea_orm::DatabaseConnection;
+use teloxide::utils::command::BotCommands;
 
 pub struct Help {}
 
 impl Module for Help {
-    fn handle(&self, _input: String) -> String {
+    async fn handle(&self, _input: String, _db: &DatabaseConnection) -> String {
         Command::descriptions().to_string()
     }
 }
