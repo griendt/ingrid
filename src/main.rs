@@ -33,13 +33,15 @@ enum Command {
 }
 
 impl Command {
-    async fn handle(&self, db: &DatabaseConnection, _chat: &chat::ActiveModel) -> String {
+    async fn handle(&self, db: &DatabaseConnection, chat: &chat::ActiveModel) -> String {
         match self {
             Command::Help => modules::help::Help {}.handle("".to_string(), db).await,
             Command::Tolkien(input) => {
-                modules::tolkien::Tolkien {}
-                    .handle(input.to_owned(), db)
-                    .await
+                modules::tolkien::Tolkien {
+                    chat_id: chat.id.clone().unwrap(),
+                }
+                .handle(input.to_owned(), db)
+                .await
             }
         }
     }

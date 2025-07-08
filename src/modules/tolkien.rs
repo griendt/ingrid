@@ -1,11 +1,15 @@
-use crate::entity::tolkien_line;
+use crate::entity::{chat_tolkien_line_number, tolkien_line};
 use crate::modules::Module;
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
+    Set,
+};
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read};
-use std::str::FromStr;
+use std::io::Read;
 
-pub struct Tolkien {}
+pub struct Tolkien {
+    pub chat_id: i32,
+}
 
 impl Tolkien {
     async fn seed(&self, db: &DatabaseConnection) {
@@ -34,23 +38,36 @@ impl Module for Tolkien {
             self.seed(db).await;
         }
 
-        let line = usize::from_str(input.as_str())
-            .ok()
-            .or_else(|| {
-                File::open("./silmarillion-line.txt")
-                    .ok()
-                    .and_then(|file| Some(BufReader::new(file)))
-                    .and_then(|buffer| Some(buffer.lines().nth(0).unwrap().unwrap()))
-                    .and_then(|line| usize::from_str(line.as_str()).ok())
-            })
-            .unwrap_or(1);
-
-        tolkien_line::Entity::find()
-            .filter(tolkien_line::Column::LineNumber.eq(line as i32))
+        let mut current_line = match chat_tolkien_line_number::Entity::find()
+            .filter(chat_tolkien_line_number::Column::ChatId.eq(self.chat_id))
             .one(db)
             .await
             .expect("Could not query the database")
-            .and_then(|model| Some(model.line_content))
-            .unwrap_or("Deze regel kan ik niet lezen.".to_string())
+        {
+            Some(record) => record.into_active_model(),
+            None => chat_tolkien_line_number::ActiveModel {
+                chat_id: Set(self.chat_id),
+                line_number: Set(1),
+                ..Default::default()
+            },
+        };
+
+        let current_line_number = current_line.line_number.clone().unwrap();
+
+        let response = tolkien_line::Entity::find()
+            .filter(tolkien_line::Column::LineNumber.eq(current_line_number))
+            .one(db)
+            .await
+            .expect("Could not query the database")
+            .and_then(|model| Some(format!("{}. {}", current_line_number, model.line_content)))
+            .unwrap_or("Deze regel kan ik niet lezen.".to_string());
+
+        current_line.line_number = Set(current_line_number + 1);
+        current_line
+            .save(db)
+            .await
+            .expect("Could not update the Tolkien line number for this chat");
+
+        response
     }
 }
