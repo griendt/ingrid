@@ -2,7 +2,7 @@ use crate::m20250707_114910_create_chats_table::Chat;
 use futures::future::TryFutureExt;
 use sea_orm_migration::{
     prelude::*,
-    schema::{integer, pk_auto, text},
+    schema::{integer, pk_auto},
 };
 
 #[derive(DeriveMigrationName)]

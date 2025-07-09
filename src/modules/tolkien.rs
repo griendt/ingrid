@@ -1,4 +1,4 @@
-use crate::entity::{chat_tolkien_line_number, tolkien_line};
+use crate::database::{chat_tolkien_line_number, tolkien_line};
 use crate::modules::Module;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,

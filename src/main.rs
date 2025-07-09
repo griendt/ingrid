@@ -1,13 +1,14 @@
-mod entity;
+mod database;
 mod modules;
 
-use crate::entity::chat;
+use crate::database::chat;
 use crate::modules::Module;
 use log::{info, warn};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
     IntoActiveModel, QueryFilter, Set,
 };
+use teloxide::types::ParseMode;
 use teloxide::{prelude::*, utils::command::BotCommands};
 
 #[tokio::main]
@@ -30,6 +31,8 @@ enum Command {
     /// Lees Tolkien voor. Geef optioneel een paragraaf-nummer op.
     #[command()]
     Tolkien(String),
+    #[command()]
+    Perudo(String),
 }
 
 impl Command {
@@ -38,6 +41,13 @@ impl Command {
             Command::Help => modules::help::Help {}.handle("".to_string(), db).await,
             Command::Tolkien(input) => {
                 modules::tolkien::Tolkien {
+                    chat_id: chat.id.clone().unwrap(),
+                }
+                .handle(input.to_owned(), db)
+                .await
+            }
+            Command::Perudo(input) => {
+                modules::perudo::Perudo {
                     chat_id: chat.id.clone().unwrap(),
                 }
                 .handle(input.to_owned(), db)
@@ -68,7 +78,10 @@ async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<
     let chat = message.get_or_create_chat(&db).await;
     let response = command.handle(&db, &chat).await;
 
-    bot.send_message(message.chat.id, response).await?;
+    bot.send_message(message.chat.id, response)
+        .parse_mode(ParseMode::Markdown)
+        .await?;
+
     Ok(())
 }
 

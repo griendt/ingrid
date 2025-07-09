@@ -3,6 +3,7 @@ pub use sea_orm_migration::prelude::*;
 mod m20250707_114910_create_chats_table;
 mod m20250708_103257_create_tolkien_lines_table;
 mod m20250708_115909_create_chat_tolkien_line_number_table;
+mod m20250709_094313_create_perudo_tables;
 
 pub struct Migrator;
 
@@ -13,6 +14,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250707_114910_create_chats_table::Migration),
             Box::new(m20250708_103257_create_tolkien_lines_table::Migration),
             Box::new(m20250708_115909_create_chat_tolkien_line_number_table::Migration),
+            Box::new(m20250709_094313_create_perudo_tables::Migration),
         ]
     }
 }

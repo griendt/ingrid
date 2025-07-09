@@ -1,6 +1,7 @@
 use sea_orm::DatabaseConnection;
 
 pub mod help;
+pub mod perudo;
 pub mod tolkien;
 
 pub trait Module {

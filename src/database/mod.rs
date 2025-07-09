@@ -2,4 +2,5 @@
 
 pub mod chat;
 pub mod chat_tolkien_line_number;
+pub mod perudo_game;
 pub mod tolkien_line;
