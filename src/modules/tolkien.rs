@@ -30,6 +30,16 @@ impl Tolkien {
             .expect("Could not insert Tolkien line");
         }
     }
+
+    async fn get_paragraph(&self, db: &DatabaseConnection, paragraph_number: i32) -> String {
+        tolkien_line::Entity::find()
+            .filter(tolkien_line::Column::LineNumber.eq(paragraph_number))
+            .one(db)
+            .await
+            .expect("Could not query the database")
+            .and_then(|model| Some(format!("{}. {}", paragraph_number, model.line_content)))
+            .unwrap_or("Deze regel kan ik niet lezen".to_string())
+    }
 }
 
 impl Module for Tolkien {
@@ -41,14 +51,7 @@ impl Module for Tolkien {
 
         let parsed_input = input.parse::<i32>();
         if parsed_input.is_ok() {
-            let line_number = parsed_input.unwrap();
-            return tolkien_line::Entity::find()
-                .filter(tolkien_line::Column::LineNumber.eq(line_number))
-                .one(db)
-                .await
-                .expect("Could not query the database")
-                .and_then(|model| Some(format!("{}. {}", line_number, model.line_content)))
-                .unwrap_or("Deze regel kan ik niet lezen".to_string());
+            return self.get_paragraph(db, parsed_input.unwrap()).await;
         }
 
         let mut current_line = match chat_tolkien_line_number::Entity::find()
@@ -66,14 +69,7 @@ impl Module for Tolkien {
         };
 
         let current_line_number = current_line.line_number.clone().unwrap();
-
-        let response = tolkien_line::Entity::find()
-            .filter(tolkien_line::Column::LineNumber.eq(current_line_number))
-            .one(db)
-            .await
-            .expect("Could not query the database")
-            .and_then(|model| Some(format!("{}. {}", current_line_number, model.line_content)))
-            .unwrap_or("Deze regel kan ik niet lezen.".to_string());
+        let response = self.get_paragraph(db, current_line_number).await;
 
         current_line.line_number = Set(current_line_number + 1);
         current_line
