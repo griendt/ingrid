@@ -43,12 +43,43 @@ impl MigrationTrait for Migration {
                         .to_owned(),
                 )
             })
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(PerudoGamePlayer::Table)
+                    .if_not_exists()
+                    .col(pk_auto(PerudoGamePlayer::Id))
+                    .col(integer(PerudoGamePlayer::PerudoGameId))
+                    .col(integer(PerudoGamePlayer::PlayerId))
+                    .to_owned(),
+            )
+            .and_then(|_| {
+                manager.create_foreign_key(
+                    ForeignKey::create()
+                        .from_tbl(PerudoGamePlayer::Table)
+                        .from_col(PerudoGamePlayer::PerudoGameId)
+                        .to_tbl(PerudoGame::Table)
+                        .to_col(PerudoGame::Id)
+                        .to_owned(),
+                )
+            })
+            .and_then(|_| {
+                manager.create_index(
+                    Index::create()
+                        .table(PerudoGamePlayer::Table)
+                        .col(PerudoGamePlayer::PlayerId)
+                        .to_owned(),
+                )
+            })
             .await
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(PerudoGame::Table).to_owned())
+            .drop_table(Table::drop().table(PerudoGamePlayer::Table).to_owned())
+            .and_then(|_| manager.drop_table(Table::drop().table(PerudoGame::Table).to_owned()))
             .and_then(|_| manager.drop_type(Type::drop().name("status").to_owned()))
             .await
     }
@@ -60,6 +91,14 @@ enum PerudoGame {
     Id,
     ChatId,
     Status,
+}
+
+#[derive(DeriveIden)]
+enum PerudoGamePlayer {
+    Table,
+    Id,
+    PerudoGameId,
+    PlayerId,
 }
 
 #[derive(Iden, EnumIter)]
