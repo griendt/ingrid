@@ -15,7 +15,7 @@ This is a Telegram bot written in Rust, inspired by [Henk](https://github.com/jv
   ```
 * To run the migrations, run the following commands:
   ```shell 
-  cargo build --release
+  cargo install sea-orm-cli
   sea-orm-cli migrate -d ./src/migration up
   ```
 * You're all set! Run Ingrid with one of the following commands, depending on your preference:
