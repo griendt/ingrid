@@ -1,7 +1,9 @@
 use crate::TelegramId;
 use crate::database::perudo_game::Ruleset::{Noord, Zuid};
+use crate::database::perudo_game::Status;
 use crate::database::{perudo_game, perudo_game_player};
 use crate::modules::Module;
+use log::kv::ToKey;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Iden, IntoActiveModel,
     QueryFilter, Set,
@@ -103,8 +105,8 @@ impl Perudo {
             Some("zuid") => Zuid,
             _ => return "Ik begrijp niet welke regelset je wil. Gebruik `noord` of `zuid`.",
         };
-
         game.ruleset = Set(Some(ruleset));
+
         match game.save(db).await {
             Ok(_) => "Ik heb de regelset aangepast.",
             Err(_) => {
@@ -126,6 +128,16 @@ impl Perudo {
             _ => "Je bent uit het spel verwijderd.",
         }
     }
+
+    async fn finish_game(&self, db: &DatabaseConnection, game: perudo_game::Model) -> &str {
+        let mut game = game.into_active_model();
+        game.status = Set(Status::Finished);
+
+        match game.save(db).await {
+            Ok(_) => "Het spel is beëindigd.",
+            Err(_) => "Het is me niet gelukt het spel te beëindigen. Probeer het later nog eens.",
+        }
+    }
 }
 
 impl Module for Perudo {
@@ -139,45 +151,58 @@ impl Module for Perudo {
                 \n`/perudo join`: Word deelnemer van het spel in deze chat\
                 \n`/perudo leave`: Verlaat het spel in deze chat\
                 \n`/perudo start`: Start het spel\
-                \n`/perudo stop`: Stop het spel vroegtijdig".to_string()
+                \n`/perudo stop`: Stop het spel vroegtijdig"
             }
-            "status" => match self.get_open_game(db).await {
-                Some(game) => self.get_game_status(db, game).await,
-                None => Self::NO_GAME_FOUND.to_string()
-            }
+            // "status" => match self.get_open_game(db).await {
+            //     None => Self::NO_GAME_FOUND,
+            //     Some(game) => self.get_game_status(db, game).await.as_str(),
+            // },
             "create" => match self.get_open_game(db).await.is_some() {
-                false => self.create_game(db).await.to_string(),
-                true => "Er bestaat al een open spel, rond deze eerst af of stuur `/perudo kill` om het spel af te kappen.".to_string(),
+                false => self.create_game(db).await,
+                true => {
+                    "Er bestaat al een open spel, rond deze eerst af of stuur `/perudo kill` om het spel af te kappen."
+                }
             },
             "ruleset" => match self.get_open_game(db).await {
-                Some(game) => self.set_ruleset(db, game, input).await.to_string(),
-                None => Self::NO_GAME_FOUND.to_string()
-            }
+                Some(game) => self.set_ruleset(db, game, input).await,
+                None => Self::NO_GAME_FOUND,
+            },
             "join" => match self.get_open_game(db).await {
                 Some(game) => match game.status {
-                    perudo_game::Status::Created => self.join_game(db, game).await.to_string(),
-                    perudo_game::Status::Started => "Sorry, het spel is al gestart. Wacht tot het spel is afgelopen en start dan een nieuwe.".to_string(),
-                    perudo_game::Status::Finished => unreachable!(),
-                }
-                None => Self::NO_GAME_FOUND.to_string()
+                    Status::Created => self.join_game(db, game).await,
+                    Status::Started => {
+                        "Sorry, het spel is al gestart. Wacht tot het spel is afgelopen en start dan een nieuwe."
+                    }
+                    Status::Finished => unreachable!(),
+                },
+                None => Self::NO_GAME_FOUND,
             },
             "leave" => match self.get_open_game(db).await {
                 Some(game) => match game.status {
-                    perudo_game::Status::Created => self.leave_game(db, game).await.to_string(),
-                    perudo_game::Status::Started => "Sorry, het spel is al gestart. Je kan het spel niet meer verlaten.".to_string(),
-                    perudo_game::Status::Finished => "Het spel is al afgelopen.".to_string(),
+                    Status::Created => self.leave_game(db, game).await,
+                    Status::Started => {
+                        "Sorry, het spel is al gestart. Je kan het spel niet meer verlaten."
+                    }
+                    Status::Finished => "Het spel is al afgelopen.",
                 },
-                None => "Er is geen spel gaande om uit te stappen.".to_string(),
-            }
+                None => "Er is geen spel gaande om uit te stappen.",
+            },
             "start" => match self.get_open_game(db).await {
                 Some(game) => match game.status {
-                    perudo_game::Status::Created => "Ik ga nu het spel starten!".to_string(),
-                    perudo_game::Status::Started => "Het spel is al bezig!".to_string(),
-                    perudo_game::Status::Finished => "Het spel is al afgelopen".to_string(),
+                    Status::Created => "Ik ga nu het spel starten!",
+                    Status::Started => "Het spel is al bezig!",
+                    Status::Finished => "Het spel is al afgelopen",
                 },
-                None => Self::NO_GAME_FOUND.to_string(),
-            }
+                None => Self::NO_GAME_FOUND,
+            },
+            "stop" => match self.get_open_game(db).await {
+                Some(game) => match game.status {
+                    Status::Finished => "Het spel is al afgelopen",
+                    _ => self.finish_game(db, game).await,
+                },
+                None => Self::NO_GAME_FOUND,
+            },
             _ => unimplemented!(),
-        }
+        }.to_string()
     }
 }
