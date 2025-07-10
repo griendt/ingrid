@@ -1,2 +1,5 @@
 /target
 .env
+/src/database/migration/target/**
+/src/database/target/**
+.idea/**
