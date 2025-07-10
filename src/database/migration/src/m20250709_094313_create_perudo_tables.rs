@@ -2,7 +2,7 @@ use crate::extension::postgres::Type;
 use crate::m20250707_114910_create_chats_table::Chat;
 use crate::sea_orm::{EnumIter, Iterable};
 use futures::future::TryFutureExt;
-use sea_orm_migration::schema::{big_integer, enumeration, enumeration_null, string};
+use sea_orm_migration::schema::{big_integer, enumeration, enumeration_null, string, string_null};
 use sea_orm_migration::{
     prelude::*,
     schema::{integer, pk_auto},
@@ -68,6 +68,8 @@ impl MigrationTrait for Migration {
                     .col(integer(PerudoGamePlayer::PerudoGameId))
                     .col(big_integer(PerudoGamePlayer::PlayerId))
                     .col(string(PerudoGamePlayer::PlayerName))
+                    .col(integer(PerudoGamePlayer::NumDice).default(0))
+                    .col(string_null(PerudoGamePlayer::CurrentDiceRoll))
                     .to_owned(),
             )
             .and_then(|_| {
@@ -117,6 +119,8 @@ enum PerudoGamePlayer {
     PerudoGameId,
     PlayerId,
     PlayerName,
+    NumDice,
+    CurrentDiceRoll,
 }
 
 #[derive(Iden, EnumIter)]

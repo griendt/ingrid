@@ -3,10 +3,12 @@ use crate::database::perudo_game::Ruleset::{Noord, Zuid};
 use crate::database::perudo_game::Status;
 use crate::database::{perudo_game, perudo_game_player};
 use crate::modules::Module;
-use log::kv::ToKey;
+use log::info;
+use rand::Rng;
+use sea_orm::prelude::Expr;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Iden, IntoActiveModel,
-    QueryFilter, Set,
+    QueryFilter, Set, Value,
 };
 use teloxide::types::User;
 
@@ -115,6 +117,31 @@ impl Perudo {
         }
     }
 
+    async fn start_game(&self, db: &DatabaseConnection, game: perudo_game::Model) -> &str {
+        for mut player in perudo_game_player::Entity::find()
+            .filter(perudo_game_player::Column::PerudoGameId.eq(game.id))
+            .all(db)
+            .await
+            .expect("Could not query players")
+        {
+            let mut player = player.into_active_model();
+            player.num_dice = Set(5);
+            player.current_dice_roll = Set(Some(format!("{:?}", self.roll_the_dice(50)))); // TODO: JSON?
+            player.save(db).await.expect("Could not update player roll");
+        }
+
+        let mut game = game.into_active_model();
+        game.status = Set(Status::Started);
+        if game.save(db).await.is_err() {
+            return "Sorry, ik kon het spel niet starten. Probeer het later nog eens.";
+        }
+
+        let dice = self.roll_the_dice(50);
+
+        // TODO: send private message
+        "Het spel is gestart en de dobbelstenen zijn geworpen... 🎲"
+    }
+
     async fn leave_game(&self, db: &DatabaseConnection, game: perudo_game::Model) -> &str {
         match perudo_game_player::Entity::delete_many()
             .filter(perudo_game_player::Column::PerudoGameId.eq(game.id))
@@ -137,6 +164,12 @@ impl Perudo {
             Ok(_) => "Het spel is beëindigd.",
             Err(_) => "Het is me niet gelukt het spel te beëindigen. Probeer het later nog eens.",
         }
+    }
+
+    fn roll_the_dice(&self, num_dice: usize) -> Vec<i32> {
+        (0..num_dice)
+            .map(|_| rand::thread_rng().gen_range(1..=6))
+            .collect()
     }
 }
 
@@ -189,7 +222,7 @@ impl Module for Perudo {
             },
             "start" => match self.get_open_game(db).await {
                 Some(game) => match game.status {
-                    Status::Created => "Ik ga nu het spel starten!",
+                    Status::Created => self.start_game(db, game).await,
                     Status::Started => "Het spel is al bezig!",
                     Status::Finished => "Het spel is al afgelopen",
                 },
