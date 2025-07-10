@@ -56,7 +56,7 @@ impl Command {
             Command::Perudo(input) => {
                 modules::perudo::Perudo {
                     chat_id: chat.id.clone().unwrap(),
-                    from_id: message.from.clone().unwrap().id.0 as TelegramId,
+                    from: message.from.clone().unwrap(),
                 }
                 .handle(input.to_owned(), db)
                 .await

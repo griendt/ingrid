@@ -2,7 +2,7 @@ use crate::extension::postgres::Type;
 use crate::m20250707_114910_create_chats_table::Chat;
 use crate::sea_orm::{EnumIter, Iterable};
 use futures::future::TryFutureExt;
-use sea_orm_migration::schema::{big_integer, enumeration};
+use sea_orm_migration::schema::{big_integer, enumeration, enumeration_null, string};
 use sea_orm_migration::{
     prelude::*,
     schema::{integer, pk_auto},
@@ -24,6 +24,15 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .create_type(
+                Type::create()
+                    .as_enum("ruleset")
+                    .values(Ruleset::iter())
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
             .create_table(
                 Table::create()
                     .table(PerudoGame::Table)
@@ -31,6 +40,11 @@ impl MigrationTrait for Migration {
                     .col(pk_auto(PerudoGame::Id))
                     .col(integer(PerudoGame::ChatId))
                     .col(enumeration(PerudoGame::Status, "status", Status::iter()))
+                    .col(enumeration_null(
+                        PerudoGame::Ruleset,
+                        "ruleset",
+                        Ruleset::iter(),
+                    ))
                     .to_owned(),
             )
             .and_then(|_| {
@@ -53,6 +67,7 @@ impl MigrationTrait for Migration {
                     .col(pk_auto(PerudoGamePlayer::Id))
                     .col(integer(PerudoGamePlayer::PerudoGameId))
                     .col(big_integer(PerudoGamePlayer::PlayerId))
+                    .col(string(PerudoGamePlayer::PlayerName))
                     .to_owned(),
             )
             .and_then(|_| {
@@ -81,6 +96,7 @@ impl MigrationTrait for Migration {
             .drop_table(Table::drop().table(PerudoGamePlayer::Table).to_owned())
             .and_then(|_| manager.drop_table(Table::drop().table(PerudoGame::Table).to_owned()))
             .and_then(|_| manager.drop_type(Type::drop().name("status").to_owned()))
+            .and_then(|_| manager.drop_type(Type::drop().name("ruleset").to_owned()))
             .await
     }
 }
@@ -91,6 +107,7 @@ enum PerudoGame {
     Id,
     ChatId,
     Status,
+    Ruleset,
 }
 
 #[derive(DeriveIden)]
@@ -99,11 +116,19 @@ enum PerudoGamePlayer {
     Id,
     PerudoGameId,
     PlayerId,
+    PlayerName,
 }
 
 #[derive(Iden, EnumIter)]
 enum Status {
     Created,
+    SelectingRuleset,
     Started,
     Finished,
+}
+
+#[derive(Iden, EnumIter)]
+enum Ruleset {
+    Noord,
+    Zuid,
 }

@@ -1,8 +1,7 @@
 use futures::future::TryFutureExt;
-use sea_orm_migration::schema::big_integer;
 use sea_orm_migration::{
     prelude::*,
-    schema::{integer, pk_auto},
+    schema::{big_integer, pk_auto},
 };
 
 #[derive(DeriveMigrationName)]

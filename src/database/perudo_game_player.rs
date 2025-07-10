@@ -8,6 +8,7 @@ pub struct Model {
     pub id: i32,
     pub perudo_game_id: i32,
     pub player_id: TelegramId,
+    pub player_name: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

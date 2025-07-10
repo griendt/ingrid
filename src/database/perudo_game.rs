@@ -7,6 +7,7 @@ pub struct Model {
     pub id: i32,
     pub chat_id: i32,
     pub status: Status,
+    pub ruleset: Option<Ruleset>,
 }
 
 #[derive(Clone, Debug, PartialEq, EnumIter, DeriveIden, DeriveActiveEnum)]
@@ -18,6 +19,15 @@ pub enum Status {
     Started,
     #[sea_orm(string_value = "finished")]
     Finished,
+}
+
+#[derive(Clone, Debug, PartialEq, EnumIter, DeriveIden, DeriveActiveEnum)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "ruleset")]
+pub enum Ruleset {
+    #[sea_orm(string_value = "noord")]
+    Noord,
+    #[sea_orm(string_value = "zuid")]
+    Zuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
