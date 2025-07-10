@@ -65,6 +65,7 @@ impl Command {
     }
 }
 
+#[allow(deprecated)] // MarkdownV2 is suggested but doesn't seem to work. Fall back to Markdown.
 async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<()> {
     warn!(
         "Received from chat ID {} user id {} message: '{}'",

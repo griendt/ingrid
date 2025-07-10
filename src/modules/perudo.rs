@@ -3,12 +3,10 @@ use crate::database::perudo_game::Ruleset::{Noord, Zuid};
 use crate::database::perudo_game::Status;
 use crate::database::{perudo_game, perudo_game_player};
 use crate::modules::Module;
-use log::info;
 use rand::Rng;
-use sea_orm::prelude::Expr;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Iden, IntoActiveModel,
-    QueryFilter, Set, Value,
+    QueryFilter, Set,
 };
 use teloxide::types::User;
 
@@ -42,6 +40,8 @@ impl Perudo {
             .expect("Could not query the database")
     }
 
+    // TODO: Implement this feature properly
+    #[allow(dead_code)]
     async fn get_game_status(&self, db: &DatabaseConnection, game: perudo_game::Model) -> String {
         let names = perudo_game_player::Entity::find()
             .filter(perudo_game_player::Column::PerudoGameId.eq(game.id))
@@ -118,7 +118,7 @@ impl Perudo {
     }
 
     async fn start_game(&self, db: &DatabaseConnection, game: perudo_game::Model) -> &str {
-        for mut player in perudo_game_player::Entity::find()
+        for player in perudo_game_player::Entity::find()
             .filter(perudo_game_player::Column::PerudoGameId.eq(game.id))
             .all(db)
             .await
@@ -135,8 +135,6 @@ impl Perudo {
         if game.save(db).await.is_err() {
             return "Sorry, ik kon het spel niet starten. Probeer het later nog eens.";
         }
-
-        let dice = self.roll_the_dice(50);
 
         // TODO: send private message
         "Het spel is gestart en de dobbelstenen zijn geworpen... 🎲"
