@@ -1,4 +1,5 @@
 use futures::future::TryFutureExt;
+use sea_orm_migration::schema::big_integer;
 use sea_orm_migration::{
     prelude::*,
     schema::{integer, pk_auto},
@@ -16,7 +17,7 @@ impl MigrationTrait for Migration {
                     .table(Chat::Table)
                     .if_not_exists()
                     .col(pk_auto(Chat::Id))
-                    .col(integer(Chat::TelegramId))
+                    .col(big_integer(Chat::TelegramId))
                     .to_owned(),
             )
             .and_then(|_| {

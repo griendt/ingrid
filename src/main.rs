@@ -11,6 +11,8 @@ use sea_orm::{
 use teloxide::types::ParseMode;
 use teloxide::{prelude::*, utils::command::BotCommands};
 
+pub type TelegramId = i64;
+
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
@@ -31,12 +33,17 @@ enum Command {
     /// Lees Tolkien voor. Geef optioneel een paragraaf-nummer op.
     #[command()]
     Tolkien(String),
-    #[command()]
+    #[command(hide)]
     Perudo(String),
 }
 
 impl Command {
-    async fn handle(&self, db: &DatabaseConnection, chat: &chat::ActiveModel) -> String {
+    async fn handle(
+        &self,
+        message: &Message,
+        db: &DatabaseConnection,
+        chat: &chat::ActiveModel,
+    ) -> String {
         match self {
             Command::Help => modules::help::Help {}.handle("".to_string(), db).await,
             Command::Tolkien(input) => {
@@ -49,6 +56,7 @@ impl Command {
             Command::Perudo(input) => {
                 modules::perudo::Perudo {
                     chat_id: chat.id.clone().unwrap(),
+                    from_id: message.from.clone().unwrap().id.0 as TelegramId,
                 }
                 .handle(input.to_owned(), db)
                 .await
@@ -76,7 +84,7 @@ async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<
     .expect("Could not connect to the database.");
 
     let chat = message.get_or_create_chat(&db).await;
-    let response = command.handle(&db, &chat).await;
+    let response = command.handle(&message, &db, &chat).await;
 
     bot.send_message(message.chat.id, response)
         .parse_mode(ParseMode::Markdown)
@@ -99,7 +107,7 @@ impl InteractWithDb for Message {
         {
             Some(chat) => chat.into_active_model(),
             None => chat::ActiveModel {
-                telegram_id: Set(self.chat.id.0 as i32),
+                telegram_id: Set(self.chat.id.0),
                 ..Default::default()
             }
             .insert(db)

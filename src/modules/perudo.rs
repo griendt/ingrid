@@ -1,4 +1,5 @@
-use crate::database::perudo_game;
+use crate::TelegramId;
+use crate::database::{perudo_game, perudo_game_player};
 use crate::modules::Module;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, Iden, QueryFilter, Set,
@@ -6,6 +7,7 @@ use sea_orm::{
 
 pub struct Perudo {
     pub chat_id: i32,
+    pub from_id: TelegramId,
 }
 
 impl Perudo {
@@ -30,7 +32,16 @@ impl Perudo {
             .expect("Could not query the database")
     }
 
-    async fn join_game(&self, db: &DatabaseConnection, game: perudo_game::Model) {}
+    async fn join_game(&self, db: &DatabaseConnection, game: perudo_game::Model) {
+        perudo_game_player::ActiveModel {
+            perudo_game_id: Set(game.id),
+            player_id: Set(self.from_id),
+            ..Default::default()
+        }
+        .insert(db)
+        .await
+        .expect("Could not join the game");
+    }
 }
 
 impl Module for Perudo {
@@ -55,7 +66,10 @@ impl Module for Perudo {
             }
             "join" => match self.get_open_game(db).await {
                 Some(game) => match game.status {
-                    perudo_game::Status::Created => "Dummy response, je komt in het spel erbij!".to_string(),
+                    perudo_game::Status::Created => {
+                        self.join_game(db, game).await;
+                        "Je bent aan het spel toegevoegd!".to_string()
+                    }
                     perudo_game::Status::Started => "Sorry, het spel is al gestart. Wacht tot het spel is afgelopen en start dan een nieuwe.".to_string(),
                     perudo_game::Status::Finished => unreachable!(),
                 }

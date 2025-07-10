@@ -2,7 +2,7 @@ use crate::extension::postgres::Type;
 use crate::m20250707_114910_create_chats_table::Chat;
 use crate::sea_orm::{EnumIter, Iterable};
 use futures::future::TryFutureExt;
-use sea_orm_migration::schema::enumeration;
+use sea_orm_migration::schema::{big_integer, enumeration};
 use sea_orm_migration::{
     prelude::*,
     schema::{integer, pk_auto},
@@ -52,7 +52,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(pk_auto(PerudoGamePlayer::Id))
                     .col(integer(PerudoGamePlayer::PerudoGameId))
-                    .col(integer(PerudoGamePlayer::PlayerId))
+                    .col(big_integer(PerudoGamePlayer::PlayerId))
                     .to_owned(),
             )
             .and_then(|_| {
